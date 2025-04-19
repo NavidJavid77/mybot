@@ -1,5 +1,2 @@
-python-telegram-bot==20.6
-apscheduler
-pytz
-jdatetime
-Pillow
+python-telegram-bot==20.1
+apscheduler==3.8.1
