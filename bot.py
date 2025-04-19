@@ -1,31 +1,31 @@
 import asyncio
-import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 from telegram import Bot
 from telegram.ext import Application
 
-# تابع برای ارسال پیام به گروه
+# توکن ربات تلگرام و آیدی گروه
+TOKEN = "BOT_TOKEN"
+GROUP_ID = "CHAT_ID"
+
 async def send_message_to_group(bot: Bot):
-    chat_id = 'CHAT_ID'  # شناسه گروه خود را وارد کنید
-    message = "این پیام هر 10 ثانیه یکبار ارسال می‌شود."
-    await bot.send_message(chat_id=chat_id, text=message)
+    try:
+        await bot.send_message(GROUP_ID, "پیام خودکار هر 10 ثانیه")
+    except Exception as e:
+        print(f"خطا در ارسال پیام: {e}")
 
-# تابع اصلی که در آن برنامه‌ریزی می‌کنیم
 async def main():
-    # ایجاد شیء Application
-    app = Application.builder().token('BOT_TOKEN').build()
+    # ایجاد اپلیکیشن و ربات تلگرام
+    app = Application.builder().token(TOKEN).build()
 
-    # راه‌اندازی برنامه‌ریز
-    scheduler = AsyncIOScheduler(timezone=pytz.UTC)  # استفاده از pytz.UTC به عنوان تایم‌زون معتبر
-    scheduler.add_job(send_message_to_group, IntervalTrigger(seconds=10), args=[app.bot])
+    # ایجاد یک شیء از AsyncIOScheduler
+    scheduler = AsyncIOScheduler()
 
-    # شروع برنامه‌ریز
+    # تنظیم زمان‌بندی ارسال پیام هر 10 ثانیه
+    scheduler.add_job(send_message_to_group, "interval", seconds=10, args=[app.bot])
     scheduler.start()
 
-    # اجرای polling برای ربات
+    # شروع به کار کردن اپلیکیشن
     await app.run_polling()
 
-# اجرای برنامه اصلی
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
