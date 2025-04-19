@@ -1,54 +1,44 @@
-import os
-import jdatetime
-import pytz
-from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
+import asyncio
+from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import asyncio
+import logging
+import os
 
+# Logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+
+# توکن ربات از محیط
 TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = -4678360479
 
-def generate_date_image():
-    today = jdatetime.date.today().strftime("%Y/%m/%d")
-    img = Image.new("RGB", (400, 200), color=(255, 255, 255))
-    draw = ImageDraw.Draw(img)
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    font = ImageFont.truetype(font_path, 36)
-    draw.text((50, 80), f"📅 {today}", font=font, fill=(0, 0, 0))
-    path = "/tmp/date.jpg"
-    img.save(path)
-    return path
+# Scheduler
+scheduler = AsyncIOScheduler()
 
-async def send_daily_message(context: ContextTypes.DEFAULT_TYPE):
-    today = jdatetime.date.today().strftime("%Y/%m/%d")
-    await context.bot.send_message(chat_id=CHAT_ID, text=f"فروش مورخ {today}")
-    image_path = generate_date_image()
-    with open(image_path, "rb") as photo:
-        await context.bot.send_photo(chat_id=CHAT_ID, photo=photo)
+# دستور استارت
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("سلام! من رباتم و دارم کار می‌کنم ✅")
 
-async def start(update, context):
-    await update.message.reply_text("✅ ربات فعاله!")
+# یک وظیفه تست برنامه‌ریزی‌شده
+def scheduled_job():
+    print("🕒 اجرای زمان‌بندی‌شده")
 
+# تابع main
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
+
     app.add_handler(CommandHandler("start", start))
 
-    scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tehran"))
-    scheduler.add_job(send_daily_message, "cron", hour=8, minute=30, args=[app])
+    # اجرای job زمان‌بندی شده هر ۱۰ ثانیه
+    scheduler.add_job(scheduled_job, "interval", seconds=10)
     scheduler.start()
 
     print("ربات در حال اجراست...")
+
+    # اجرای polling
     await app.run_polling()
 
-# اینجا به جای asyncio.run از loop موجود استفاده می‌کنیم
+# اجرا
 if __name__ == "__main__":
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            loop.create_task(main())
-        else:
-            loop.run_until_complete(main())
-    except RuntimeError:
-        asyncio.run(main())
+    asyncio.run(main())
