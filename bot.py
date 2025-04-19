@@ -1,44 +1,31 @@
 import asyncio
-import os
-from telegram import Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from telegram import Update
-import logging
-
-# لاگ
-logging.basicConfig(level=logging.INFO)
-
-# دریافت توکن و آیدی گروه از متغیرهای محیطی
-TOKEN = os.getenv("BOT_TOKEN")
-GROUP_ID = os.getenv("GROUP_ID")  # مثل -1001234567890
-
-# ایجاد scheduler
-scheduler = AsyncIOScheduler()
+from apscheduler.triggers.interval import IntervalTrigger
+from telegram import Bot
+from telegram.ext import Application
 
 # تابع برای ارسال پیام به گروه
 async def send_message_to_group(bot: Bot):
-    await bot.send_message(chat_id=GROUP_ID, text="پیام زمان‌بندی‌شده در گروه ارسال شد ✅")
+    chat_id = 'CHAT_ID'  # شناسه گروه خود را وارد کنید
+    message = "این پیام هر 10 ثانیه یکبار ارسال می‌شود."
+    await bot.send_message(chat_id=chat_id, text=message)
 
-# دستور استارت (تست دستی)
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("ربات فعال است و منتظر زمان‌بندی ✅")
-
-# تابع اصلی
+# تابع اصلی که در آن برنامه‌ریزی می‌کنیم
 async def main():
-    app = ApplicationBuilder().token(TOKEN).build()
+    # ایجاد شیء Application
+    app = Application.builder().token('BOT_TOKEN').build()
 
-    # هندلر دستور start
-    app.add_handler(CommandHandler("start", start))
+    # راه‌اندازی برنامه‌ریز
+    scheduler = AsyncIOScheduler(timezone=pytz.UTC)  # استفاده از pytz.UTC به عنوان تایم‌زون معتبر
+    scheduler.add_job(send_message_to_group, IntervalTrigger(seconds=10), args=[app.bot])
 
-    # اجرای job زمان‌بندی شده هر 10 ثانیه
-    scheduler.add_job(send_message_to_group, "interval", seconds=10, args=[app.bot])
+    # شروع برنامه‌ریز
     scheduler.start()
 
-    print("ربات در حال اجراست...")
-
+    # اجرای polling برای ربات
     await app.run_polling()
 
-# اجرای برنامه
+# اجرای برنامه اصلی
 if __name__ == "__main__":
     asyncio.run(main())
