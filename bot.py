@@ -2,16 +2,16 @@ import os
 import jdatetime
 import pytz
 import asyncio
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# توکن و چت‌آی‌دی
+# اطلاعات ثابت
 TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = -4678360479
+CHAT_ID = -4678360479  # چت آیدی گروهت
 
-# تابع ساختن عکس تاریخ
+# ساخت تصویر تاریخ
 def generate_date_image():
     today = jdatetime.date.today().strftime("%Y/%m/%d")
     img = Image.new("RGB", (400, 200), color=(255, 255, 255))
@@ -25,8 +25,8 @@ def generate_date_image():
     img.save(path)
     return path
 
-# پیام روزانه
-async def send_daily_message():
+# ارسال پیام روزانه
+async def send_daily_message(app):
     today = jdatetime.date.today().strftime("%Y/%m/%d")
     await app.bot.send_message(chat_id=CHAT_ID, text=f"فروش مورخ {today}")
 
@@ -34,20 +34,23 @@ async def send_daily_message():
     with open(image_path, "rb") as photo:
         await app.bot.send_photo(chat_id=CHAT_ID, photo=photo)
 
-# پیام تست برای /start
+# استارت هندلر
 async def start(update, context):
-    await update.message.reply_text("✅ ربات فعال شد!")
+    await update.message.reply_text("✅ ربات فعال است!")
 
-# زمان‌بندی فقط اگر امروز جمعه نباشه
-def schedule_job():
-    if jdatetime.date.today().weekday() != 6:  # 6 یعنی جمعه
-        asyncio.create_task(send_daily_message())
+# تابع اصلی
+async def main():
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
 
-# تنظیم زمان‌بند
-scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tehran"))
-scheduler.add_job(schedule_job, trigger="cron", hour=8, minute=30)
+    # زمان‌بندی پیام روزانه فقط اگر جمعه نیست
+    scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tehran"))
+    scheduler.add_job(lambda: asyncio.create_task(send_daily_message(app)), trigger="cron", hour=8, minute=30)
+    scheduler.start()
 
-# ساخت اپ و راه‌اندازی
-app = ApplicationBuilder().token(TOKEN).post_init(lambda _: scheduler.start()).build()
-app.add_handler(CommandHandler("start", start))
-app.run_polling()
+    print("ربات در حال اجراست...")
+    await app.run_polling()
+
+# اجرای برنامه
+if __name__ == "__main__":
+    asyncio.run(main())
