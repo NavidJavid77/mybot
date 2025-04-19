@@ -54,7 +54,8 @@ def scheduled_job():
     if is_not_friday():
         return send_daily_message
 
-scheduler.add_job(send_daily_message, trigger="cron", hour=8, minute=30)
+# تنظیم زمان‌بندی به صورت cron
+scheduler.add_job(lambda context: send_daily_message(context), trigger="cron", hour=8, minute=30)
 scheduler.start()
 
 # اجرای ربات
