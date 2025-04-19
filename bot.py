@@ -7,11 +7,8 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 
 TOKEN = os.getenv("BOT_TOKEN")
-
-# chat_id به صورت مستقیم (ثابت گذاشتیم چون الان می‌دونیم چنده)
 CHAT_ID = -4678360479
 
-# ساخت اپلیکیشن و زمان‌بندی
 app = ApplicationBuilder().token(TOKEN).build()
 scheduler = AsyncIOScheduler(timezone=pytz.timezone("Asia/Tehran"))
 
@@ -30,33 +27,27 @@ def generate_date_image():
     return path
 
 # ارسال پیام روزانه + عکس
-async def send_daily_message(context: ContextTypes.DEFAULT_TYPE):
+async def send_daily_message():
     today = jdatetime.date.today().strftime("%Y/%m/%d")
-    await context.bot.send_message(chat_id=CHAT_ID, text=f"فروش مورخ {today}")
+    await app.bot.send_message(chat_id=CHAT_ID, text=f"فروش مورخ {today}")
 
-    # ارسال تصویر
     image_path = generate_date_image()
     with open(image_path, "rb") as photo:
-        await context.bot.send_photo(chat_id=CHAT_ID, photo=photo)
+        await app.bot.send_photo(chat_id=CHAT_ID, photo=photo)
 
 # دستور تستی
 async def start(update, context):
     await update.message.reply_text("✅ ربات فعال شد!")
 
-# هندلرها
 app.add_handler(CommandHandler("start", start))
 
-# تنظیم زمان روزانه به جز جمعه
-def is_not_friday():
-    return jdatetime.date.today().weekday() != 6  # جمعه = 6 در تقویم جلالی
+# زمان‌بند بدون context
+def schedule_job():
+    import asyncio
+    if jdatetime.date.today().weekday() != 6:  # جمعه = 6
+        asyncio.create_task(send_daily_message())
 
-def scheduled_job():
-    if is_not_friday():
-        return send_daily_message
-
-# تنظیم زمان‌بندی به صورت cron
-scheduler.add_job(lambda context: send_daily_message(context), trigger="cron", hour=8, minute=30)
+scheduler.add_job(schedule_job, trigger="cron", hour=8, minute=30)
 scheduler.start()
 
-# اجرای ربات
 app.run_polling()
