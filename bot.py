@@ -1,44 +1,44 @@
 import asyncio
-from telegram import Update
+import os
+from telegram import Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from telegram import Update
 import logging
-import os
 
-# Logging
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
+# لاگ
+logging.basicConfig(level=logging.INFO)
 
-# توکن ربات از محیط
+# دریافت توکن و آیدی گروه از متغیرهای محیطی
 TOKEN = os.getenv("BOT_TOKEN")
+GROUP_ID = os.getenv("GROUP_ID")  # مثل -1001234567890
 
-# Scheduler
+# ایجاد scheduler
 scheduler = AsyncIOScheduler()
 
-# دستور استارت
+# تابع برای ارسال پیام به گروه
+async def send_message_to_group(bot: Bot):
+    await bot.send_message(chat_id=GROUP_ID, text="پیام زمان‌بندی‌شده در گروه ارسال شد ✅")
+
+# دستور استارت (تست دستی)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("سلام! من رباتم و دارم کار می‌کنم ✅")
+    await update.message.reply_text("ربات فعال است و منتظر زمان‌بندی ✅")
 
-# یک وظیفه تست برنامه‌ریزی‌شده
-def scheduled_job():
-    print("🕒 اجرای زمان‌بندی‌شده")
-
-# تابع main
+# تابع اصلی
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # هندلر دستور start
     app.add_handler(CommandHandler("start", start))
 
-    # اجرای job زمان‌بندی شده هر ۱۰ ثانیه
-    scheduler.add_job(scheduled_job, "interval", seconds=10)
+    # اجرای job زمان‌بندی شده هر 10 ثانیه
+    scheduler.add_job(send_message_to_group, "interval", seconds=10, args=[app.bot])
     scheduler.start()
 
     print("ربات در حال اجراست...")
 
-    # اجرای polling
     await app.run_polling()
 
-# اجرا
+# اجرای برنامه
 if __name__ == "__main__":
     asyncio.run(main())
