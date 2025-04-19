@@ -8,15 +8,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 TOKEN = os.getenv("BOT_TOKEN")
 
-# گرفتن chat_id امن و مقاوم
-chat_id_raw = os.getenv("GROUP_CHAT_ID")
-if not chat_id_raw:
-    raise Exception("❌ Environment Variable 'GROUP_CHAT_ID' is not set!")
-
-try:
-    CHAT_ID = int(chat_id_raw)
-except ValueError:
-    raise Exception("❌ GROUP_CHAT_ID must be a valid integer (like -1001234567890)")
+# chat_id به صورت مستقیم (ثابت گذاشتیم چون الان می‌دونیم چنده)
+CHAT_ID = -4678360479
 
 # ساخت اپلیکیشن و زمان‌بندی
 app = ApplicationBuilder().token(TOKEN).build()
@@ -28,7 +21,6 @@ def generate_date_image():
     img = Image.new("RGB", (400, 200), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    # فونت ساده سیستمی (اگه فونت فارسی نداری)
     font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     font = ImageFont.truetype(font_path, 36)
     draw.text((50, 80), f"📅 {today}", font=font, fill=(0, 0, 0))
@@ -51,15 +43,17 @@ async def send_daily_message(context: ContextTypes.DEFAULT_TYPE):
 async def start(update, context):
     await update.message.reply_text("✅ ربات فعال شد!")
 
-async def get_chat_id(update, context):
-    chat_id = update.effective_chat.id
-    await update.message.reply_text(f"Chat ID: {chat_id}")
-
 # هندلرها
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("chatid", get_chat_id))
 
-# تنظیم زمان
+# تنظیم زمان روزانه به جز جمعه
+def is_not_friday():
+    return jdatetime.date.today().weekday() != 6  # جمعه = 6 در تقویم جلالی
+
+def scheduled_job():
+    if is_not_friday():
+        return send_daily_message
+
 scheduler.add_job(send_daily_message, trigger="cron", hour=8, minute=30)
 scheduler.start()
 
